@@ -2,19 +2,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 
 
-def flatten_stream(li: list[Any]) -> list:
-    flat = []
-    for i in li:
-        if isinstance(i, list):
-            flat.extend(i)
-        else:
-            flat.append(i)
-    if len(flat) == 1 and callable(flat[0]):
-        print("returning callable")
-        return flat[0]
-    return flat
-
-
 class var(int):
     pass
 
@@ -45,6 +32,19 @@ class subs_counter:
 stream = Union[list[subs_counter], Any]
 
 goal = Callable[[subs_counter], stream]
+
+
+def flatten_stream(li: list[Any]) -> stream:
+    flat = []
+    for i in li:
+        if isinstance(i, list):
+            flat.extend(i)
+        else:
+            flat.append(i)
+    if len(flat) == 1 and callable(flat[0]):
+        print("returning callable")
+        return flat[0]
+    return flat
 
 
 def walk(t: term, sub_list: list[sub]) -> term:
