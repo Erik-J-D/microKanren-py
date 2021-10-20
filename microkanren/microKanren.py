@@ -2,13 +2,16 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 
 
-def flatten(li: list[Any]) -> list:
+def flatten_stream(li: list[Any]) -> list:
     flat = []
     for i in li:
         if isinstance(i, list):
             flat.extend(i)
         else:
             flat.append(i)
+    if len(flat) == 1 and callable(flat[0]):
+        print("returning callable")
+        return flat[0]
     return flat
 
 
@@ -35,9 +38,10 @@ class subs_counter:
     counter: int
 
 
-# This type isn't exactly right. A stream can be either a list of sub_counter,
-# or a nullary function that when evaluated returns a stream. Mypy didn't like
-# that recursive definition.
+# This type isn't exactly right. A stream can be either a list of sub_counter
+# and nullary functions that will return a stream, or a nullary function that
+# when evaluated returns a stream. Mypy doesn't like this recursive definition.
+# stream = Union[list[Union[subs_counter, Callable[[], 'stream']]], Callable[[], 'stream']]
 stream = Union[list[subs_counter], Any]
 
 goal = Callable[[subs_counter], stream]
@@ -102,10 +106,10 @@ def conj(g1: goal, g2: goal) -> goal:
 def mplus(s1: stream, s2: stream) -> stream:
     if not s1:
         return s2
-    elif callable(s1[0]):
-        return lambda: mplus(s2, s1[0]())
+    elif callable(s1):
+        return lambda: mplus(s2, s1())
     else:
-        return flatten([s1[0], mplus(s1[1:], s2)])
+        return flatten_stream([s1[0], mplus(s1[1:], s2)])
 
 
 def bind(s: stream, g: goal) -> stream:
