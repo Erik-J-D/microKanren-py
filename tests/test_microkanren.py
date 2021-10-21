@@ -6,7 +6,7 @@ def test_basic_unify():
     empty = subs_counter([], 0)
     g = fresh(lambda q: eq(q, atom('hello')))
     result = g(empty)
-    assert result == [subs_counter([sub(0, 'hello')], 1)]
+    assert result == [subs_counter([sub('q0', 'hello')], 1)]
 
 
 def test_disj():
@@ -14,8 +14,8 @@ def test_disj():
     g = fresh(lambda a: disj(eq(a, atom('hello')), eq(a, atom('hi'))))
     result = g(empty)
     assert result == [
-        subs_counter([sub(0, 'hello')], 1),
-        subs_counter([sub(0, 'hi')], 1)
+        subs_counter([sub('a0', 'hello')], 1),
+        subs_counter([sub('a0', 'hi')], 1)
     ]
 
 
@@ -25,7 +25,7 @@ def test_conj():
         fresh(lambda a: eq(a, atom('hi'))),
         fresh(lambda b: eq(b, atom('hello'))))
     result = g(empty)
-    assert result == [subs_counter([sub(0, 'hi'), sub(1, 'hello')], 2)]
+    assert result == [subs_counter([sub('a0', 'hi'), sub('b1', 'hello')], 2)]
 
 
 def test_disj_conj():
@@ -37,8 +37,8 @@ def test_disj_conj():
             eq(b, atom('3')))))
     result = g(empty)
     assert result == [
-        subs_counter([sub(0, '1'), sub(1, '2')], 2),
-        subs_counter([sub(0, '1'), sub(1, '3')], 2),
+        subs_counter([sub('a0', '1'), sub('b1', '2')], 2),
+        subs_counter([sub('a0', '1'), sub('b1', '3')], 2),
     ]
 
 
@@ -58,8 +58,8 @@ def test_inverse_eta_delay():
     fives_and_sixes = fresh(lambda x: disj(fives(x), sixes(x)))
     result = fives_and_sixes(empty)
 
-    five_result = subs_counter([sub(0, atom('5'))], 1)
-    six_result = subs_counter([sub(0, atom('6'))], 1)
+    five_result = subs_counter([sub('x0', atom('5'))], 1)
+    six_result = subs_counter([sub('x0', atom('6'))], 1)
 
     assert result[0] == five_result
     assert result[2] == six_result
@@ -90,6 +90,15 @@ def test_fives():
     result = g(empty)
 
     for i in range(10):
-        assert result[0] == subs_counter([sub(0, atom('5'))], 1)
+        assert result[0] == subs_counter([sub('x0', atom('5'))], 1)
         assert callable(result[1])
         result = result[1]()
+
+def test_multiple_fresh_terms():
+    g = fresh(lambda x, y:
+              conj(eq(x, atom('hello')),
+                   eq(y, x)))
+
+    result = g(subs_counter([], 0))
+    assert result == [subs_counter([sub('x0', atom('hello')),
+                                    sub('y1', atom('hello'))], 2)]

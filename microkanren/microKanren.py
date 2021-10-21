@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, List
 
 
-class var(int):
+class var(str):
     pass
 
 
@@ -85,9 +85,12 @@ def unify(u: term, v: term, s: list[sub]) -> Optional[list[sub]]:
     return None
 
 
-def fresh(f: Callable[[term], goal]) -> goal:
+def fresh(f: Callable[[List[term]], goal]) -> goal:
+    import inspect
     def _fresh(s_c: subs_counter):
-        return f(var(s_c.counter))(subs_counter(s_c.sub_list, s_c.counter + 1))
+        term_names = [str(term) for term in inspect.signature(f).parameters]
+        terms = [var(term + str(s_c.counter + i)) for (i, term) in enumerate(term_names)]
+        return f(*terms)(subs_counter(s_c.sub_list, s_c.counter + len(term_names)))
     return _fresh
 
 
