@@ -94,6 +94,7 @@ def test_fives():
         assert callable(result[1])
         result = result[1]()
 
+
 def test_multiple_fresh_terms():
     g = fresh(lambda x, y:
               conj(eq(x, atom('hello')),

@@ -6,6 +6,7 @@ authors = ["Erik Derohanian <erik@erik-j.de>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+mypy-extensions = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"

@@ -1,5 +1,8 @@
+import inspect
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Union, List
+from typing import Any, Callable, Optional, Union
+
+from mypy_extensions import VarArg
 
 
 class var(str):
@@ -85,8 +88,7 @@ def unify(u: term, v: term, s: list[sub]) -> Optional[list[sub]]:
     return None
 
 
-def fresh(f: Callable[[List[term]], goal]) -> goal:
-    import inspect
+def fresh(f: Callable[[VarArg(term)], goal]) -> goal:
     def _fresh(s_c: subs_counter):
         term_names = [str(term) for term in inspect.signature(f).parameters]
         terms = [var(term + str(s_c.counter + i)) for (i, term) in enumerate(term_names)]
