@@ -1,40 +1,26 @@
 import inspect
-from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 
 from mypy_extensions import VarArg
 
 
-class var(str):
+class Var(str):
     pass
 
 
-class atom(str):
-    pass
+term = Union[Var, Any]
 
 
-term = Union[var, atom]
-
-
-@dataclass
-class sub:
-    source: var
-    target: term
-
-
-@dataclass
-class subs_counter:
-    sub_list: list[sub]
-    counter: int
+substitutions = dict[Var, term]
 
 
 # This type isn't exactly right. A stream can be either a list of sub_counter
 # and nullary functions that will return a stream, or a nullary function that
 # when evaluated returns a stream. Mypy doesn't like this recursive definition.
 # stream = Union[list[Union[subs_counter, Callable[[], 'stream']]], Callable[[], 'stream']]
-stream = Union[list[subs_counter], Any]
+stream = Union[list[substitutions], Any]
 
-goal = Callable[[subs_counter], stream]
+goal = Callable[[substitutions], stream]
 
 
 def flatten_stream(li: list[Any]) -> stream:
@@ -50,61 +36,56 @@ def flatten_stream(li: list[Any]) -> stream:
     return flat
 
 
-def walk(t: term, sub_list: list[sub]) -> term:
-    if isinstance(t, var):
-        for s in sub_list:
-            if t == s.source:
-                return walk(s.target, sub_list)
+def walk(t: term, subs: substitutions) -> term:
+    if isinstance(t, Var) and t in subs:
+        return walk(subs[t], subs)
     return t
 
 
-def extend_subs(source: var, target: term, sub_list: list[sub]) -> list[sub]:
-    return sub_list + [sub(source, target)]
+def extend_subs(source: Var, target: Any, subs: substitutions) -> substitutions:
+    return subs | {source: target}
 
 
 def eq(u: term, v: term) -> goal:
-    def _eq(s_c: subs_counter):
-        s = unify(u, v, s_c.sub_list)
-        if s:
-            return [subs_counter(s, s_c.counter)]
-        else:
-            return []
+    def _eq(subs: substitutions):
+        s = unify(u, v, subs)
+        return [s] if s else []
     return _eq
 
 
-def unify(u: term, v: term, s: list[sub]) -> Optional[list[sub]]:
-    u = walk(u, s)
-    v = walk(v, s)
+def unify(u: term, v: term, s: substitutions) -> Optional[substitutions]:
+    u_target = walk(u, s)
+    v_target = walk(v, s)
 
-    if isinstance(u, var) and isinstance(v, var) and u == v:
+    if isinstance(u_target, Var) and isinstance(v_target, Var) and u_target == v_target:
         return s
-    elif isinstance(u, var):
-        return extend_subs(u, v, s)
-    elif isinstance(v, var):
-        return extend_subs(v, u, s)
-    elif u == v:
+    elif isinstance(u_target, Var):
+        return extend_subs(u_target, v_target, s)
+    elif isinstance(v_target, Var):
+        return extend_subs(v_target, u_target, s)
+    elif u_target == v_target:
         return s
 
     return None
 
 
 def fresh(f: Callable[[VarArg(term)], goal]) -> goal:
-    def _fresh(s_c: subs_counter):
+    def _fresh(subs: substitutions):
         term_names = [str(term) for term in inspect.signature(f).parameters]
-        terms = [var(term + str(s_c.counter + i)) for (i, term) in enumerate(term_names)]
-        return f(*terms)(subs_counter(s_c.sub_list, s_c.counter + len(term_names)))
+        terms = [Var(term) for term in term_names]
+        return f(*terms)(subs)
     return _fresh
 
 
 def disj(g1: goal, g2: goal) -> goal:
-    def _disj(s_c: subs_counter):
-        return mplus(g1(s_c), g2(s_c))
+    def _disj(subs: substitutions):
+        return mplus(g1(subs), g2(subs))
     return _disj
 
 
 def conj(g1: goal, g2: goal) -> goal:
-    def _conj(s_c: subs_counter):
-        return bind(g1(s_c), g2)
+    def _conj(subs: substitutions):
+        return bind(g1(subs), g2)
     return _conj
 
 

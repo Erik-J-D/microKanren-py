@@ -1,65 +1,59 @@
-from microkanren import (atom, conj, disj, eq, fresh, goal, sub, subs_counter,
-                         term)
+from microkanren import conj, disj, eq, fresh, goal, term
 
 
 def test_basic_unify():
-    empty = subs_counter([], 0)
-    g = fresh(lambda q: eq(q, atom('hello')))
-    result = g(empty)
-    assert result == [subs_counter([sub('q0', 'hello')], 1)]
+    g = fresh(lambda q: eq(q, 'hello'))
+    result = g({})
+    assert result == [{'q': 'hello'}]
 
 
 def test_disj():
-    empty = subs_counter([], 0)
-    g = fresh(lambda a: disj(eq(a, atom('hello')), eq(a, atom('hi'))))
-    result = g(empty)
+    g = fresh(lambda a: disj(eq(a, 'hello'), eq(a, 'hi')))
+    result = g({})
     assert result == [
-        subs_counter([sub('a0', 'hello')], 1),
-        subs_counter([sub('a0', 'hi')], 1)
+        {'a': 'hello'},
+        {'a': 'hi'}
     ]
 
 
 def test_conj():
-    empty = subs_counter([], 0)
     g = conj(
-        fresh(lambda a: eq(a, atom('hi'))),
-        fresh(lambda b: eq(b, atom('hello'))))
-    result = g(empty)
-    assert result == [subs_counter([sub('a0', 'hi'), sub('b1', 'hello')], 2)]
+        fresh(lambda a: eq(a, 'hi')),
+        fresh(lambda b: eq(b, 'hello')))
+    result = g({})
+    assert result == [{'a': 'hi', 'b': 'hello'}]
 
 
 def test_disj_conj():
-    empty = subs_counter([], 0)
     g = conj(
-        fresh(lambda a: eq(a, '1')),
+        fresh(lambda a: eq(a, 1)),
         fresh(lambda b: disj(
-            eq(b, atom('2')),
-            eq(b, atom('3')))))
-    result = g(empty)
+            eq(b, 2),
+            eq(b, 3))))
+    result = g({})
     assert result == [
-        subs_counter([sub('a0', '1'), sub('b1', '2')], 2),
-        subs_counter([sub('a0', '1'), sub('b1', '3')], 2),
+        {'a': 1, 'b': 2},
+        {'a': 1, 'b': 3},
     ]
 
 
 def test_inverse_eta_delay():
-    empty = subs_counter([], 0)
 
     def fives(x: term) -> goal:
         return disj(
-            eq(x, atom('5')),
-            lambda s_c: (lambda: fives(x)(s_c)))
+            eq(x, '5'),
+            lambda subs: (lambda: fives(x)(subs)))
 
     def sixes(x: term) -> goal:
         return disj(
-            eq(x, atom('6')),
-            lambda s_c: (lambda: sixes(x)(s_c)))
+            eq(x, '6'),
+            lambda subs: (lambda: sixes(x)(subs)))
 
     fives_and_sixes = fresh(lambda x: disj(fives(x), sixes(x)))
-    result = fives_and_sixes(empty)
+    result = fives_and_sixes({})
 
-    five_result = subs_counter([sub('x0', atom('5'))], 1)
-    six_result = subs_counter([sub('x0', atom('6'))], 1)
+    five_result = {'x': '5'}
+    six_result = {'x': '6'}
 
     assert result[0] == five_result
     assert result[2] == six_result
@@ -79,27 +73,25 @@ def test_inverse_eta_delay():
 
 
 def test_fives():
-    empty = subs_counter([], 0)
 
     def fives(x: term) -> goal:
         return disj(
-            eq(x, atom('5')),
-            lambda s_c: (lambda: fives(x)(s_c)))
+            eq(x, '5'),
+            lambda subs: (lambda: fives(x)(subs)))
 
     g = fresh(fives)
-    result = g(empty)
+    result = g({})
 
     for i in range(10):
-        assert result[0] == subs_counter([sub('x0', atom('5'))], 1)
+        assert result[0] == {'x': '5'}
         assert callable(result[1])
         result = result[1]()
 
 
 def test_multiple_fresh_terms():
     g = fresh(lambda x, y:
-              conj(eq(x, atom('hello')),
+              conj(eq(x, 'hello'),
                    eq(y, x)))
 
-    result = g(subs_counter([], 0))
-    assert result == [subs_counter([sub('x0', atom('hello')),
-                                    sub('y1', atom('hello'))], 2)]
+    result = g({})
+    assert result == [{'x': 'hello', 'y': 'hello'}]
