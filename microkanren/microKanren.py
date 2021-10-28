@@ -1,4 +1,5 @@
 import inspect
+from functools import reduce
 from typing import Any, Callable, Optional, Union
 
 from more_itertools import collapse
@@ -10,17 +11,13 @@ class Var(str):
 
 
 term = Union[Var, Any]
-
-
 substitutions = dict[Var, term]
 
-
-# This type isn't exactly right. A stream can be either a list of sub_counter
+# This type isn't exactly right. A stream can be either a list of substitutions
 # and nullary functions that will return a stream, or a nullary function that
 # when evaluated returns a stream. Mypy doesn't like this recursive definition.
-# stream = Union[list[Union[subs_counter, Callable[[], 'stream']]], Callable[[], 'stream']]
+# stream = Union[list[Union[list[substitutions], Callable[[], 'stream']]], Callable[[], 'stream']]
 stream = Union[list[substitutions], Any]
-
 goal = Callable[[substitutions], stream]
 
 
@@ -65,15 +62,22 @@ def fresh(f: Callable[[VarArg(term)], goal]) -> goal:
     return _fresh
 
 
-def disj(g1: goal, g2: goal) -> goal:
+def disj(*goals: goal) -> goal:
+    if len(goals) < 2:
+        raise Exception("disj needs 2 or more goals")
+
     def _disj(subs: substitutions):
-        return mplus(g1(subs), g2(subs))
+        streams = [g(subs) for g in goals]
+        return reduce(mplus, streams)
     return _disj
 
 
-def conj(g1: goal, g2: goal) -> goal:
+def conj(*goals: goal) -> goal:
+    if len(goals) < 2:
+        raise Exception("conj needs 2 or more goals")
+
     def _conj(subs: substitutions):
-        return bind(g1(subs), g2)
+        return reduce(bind, goals[1:], goals[0](subs))
     return _conj
 
 

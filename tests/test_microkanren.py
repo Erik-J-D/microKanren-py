@@ -8,20 +8,22 @@ def test_basic_unify():
 
 
 def test_disj():
-    g = fresh(lambda a: disj(eq(a, 'hello'), eq(a, 'hi')))
+    g = fresh(lambda a: disj(eq(a, 'hello'), eq(a, 'hi'), eq(a, 12)))
     result = g({})
     assert result == [
         {'a': 'hello'},
-        {'a': 'hi'}
+        {'a': 'hi'},
+        {'a': 12}
     ]
 
 
 def test_conj():
     g = conj(
         fresh(lambda a: eq(a, 'hi')),
-        fresh(lambda b: eq(b, 'hello')))
+        fresh(lambda b: eq(b, 42)),
+        fresh(lambda c: eq(c, 'hello')))
     result = g({})
-    assert result == [{'a': 'hi', 'b': 'hello'}]
+    assert result == [{'a': 'hi', 'b': 42, 'c': 'hello'}]
 
 
 def test_disj_conj():
