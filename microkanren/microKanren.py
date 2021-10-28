@@ -1,6 +1,7 @@
 import inspect
 from typing import Any, Callable, Optional, Union
 
+from more_itertools import collapse
 from mypy_extensions import VarArg
 
 
@@ -21,19 +22,6 @@ substitutions = dict[Var, term]
 stream = Union[list[substitutions], Any]
 
 goal = Callable[[substitutions], stream]
-
-
-def flatten_stream(li: list[Any]) -> stream:
-    flat = []
-    for i in li:
-        if isinstance(i, list):
-            flat.extend(i)
-        else:
-            flat.append(i)
-    if len(flat) == 1 and callable(flat[0]):
-        print("returning callable")
-        return flat[0]
-    return flat
 
 
 def walk(t: term, subs: substitutions) -> term:
@@ -95,7 +83,7 @@ def mplus(s1: stream, s2: stream) -> stream:
     elif callable(s1):
         return lambda: mplus(s2, s1())
     else:
-        return flatten_stream([s1[0], mplus(s1[1:], s2)])
+        return list(collapse([s1[0], mplus(s1[1:], s2)], base_type=dict))
 
 
 def bind(s: stream, g: goal) -> stream:
