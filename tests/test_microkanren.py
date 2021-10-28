@@ -97,3 +97,13 @@ def test_multiple_fresh_terms():
 
     result = g({})
     assert result == [{'x': 'hello', 'y': 'hello'}]
+
+
+def test_name_collision():
+    g = conj(
+        fresh(lambda x: eq(x, 'hello')),
+        fresh(lambda x: eq(x, 'bye')),
+    )
+
+    result = g({})
+    assert result == [{'x': 'hello', 'x1': 'bye'}]
