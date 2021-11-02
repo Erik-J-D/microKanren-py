@@ -57,7 +57,16 @@ def unify(u: term, v: term, s: substitutions) -> Optional[substitutions]:
 def fresh(f: Callable[[VarArg(term)], goal]) -> goal:
     def _fresh(subs: substitutions):
         term_names = [str(term) for term in inspect.signature(f).parameters]
-        terms = [Var(term) for term in term_names]
+        terms = []
+        for term in term_names:
+            v = Var(term)
+            i = 0
+            while v in subs:
+                i += 1
+                v = Var(term + str(i))
+
+            terms.append(v)
+
         return f(*terms)(subs)
     return _fresh
 
