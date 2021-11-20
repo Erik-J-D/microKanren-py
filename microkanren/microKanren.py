@@ -1,6 +1,6 @@
 import inspect
 from functools import reduce
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 from more_itertools import collapse
 from mypy_extensions import VarArg
@@ -33,25 +33,24 @@ def extend_subs(source: Var, target: Any, subs: substitutions) -> substitutions:
 
 def eq(u: term, v: term) -> goal:
     def _eq(subs: substitutions):
-        s = unify(u, v, subs)
-        return [s] if s else []
+        return unify(u, v, subs)
     return _eq
 
 
-def unify(u: term, v: term, s: substitutions) -> Optional[substitutions]:
+def unify(u: term, v: term, s: substitutions) -> stream:
     u_target = walk(u, s)
     v_target = walk(v, s)
 
     if isinstance(u_target, Var) and isinstance(v_target, Var) and u_target == v_target:
-        return s
+        return [s]
     elif isinstance(u_target, Var):
-        return extend_subs(u_target, v_target, s)
+        return [extend_subs(u_target, v_target, s)]
     elif isinstance(v_target, Var):
-        return extend_subs(v_target, u_target, s)
+        return [extend_subs(v_target, u_target, s)]
     elif u_target == v_target:
-        return s
+        return [s]
 
-    return None
+    return []
 
 
 def fresh(f: Callable[[VarArg(term)], goal]) -> goal:
