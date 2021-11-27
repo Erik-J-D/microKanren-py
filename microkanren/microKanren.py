@@ -20,6 +20,10 @@ class State():
         self.subs = subs
         self.var_counter = var_counter
 
+    @classmethod
+    def empty(cls):
+        return cls({}, Counter())
+
     def __eq__(self, other):
         return isinstance(other, State) and \
             self.subs == other.subs and \
@@ -30,10 +34,6 @@ class State():
 
     def __str__(self):
         return self.__repr__(self)
-
-
-def empty_state():
-    return State({}, Counter())
 
 
 # This type isn't exactly right. A stream can be either a list of States
